@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  gsi-lsi-db
+
+  Sample SAM Template for gsi-lsi-db
+
+Parameters:
+  LambdaMemorySize:
+    Type: Number
+    Default: "128"
+    Description: "This is the default aws lambda "
+  LambdaTimeout:
+    Type: Number
+    Default: "7"
+    Description: "Timeout for lambda function"
+
+Resources:
+  DynamoDBCrudFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dynamo-db/
+      Handler: app.dynoDBCrud
+      Runtime: nodejs20.x
+      MemorySize: !Ref LambdaMemorySize
+      Timeout: !Ref LambdaTimeout
+
+      Architectures:
+        - x86_64
+      Events:
+        DynamoDBAPI:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+      Policies:
+        - AmazonDynamoDBReadOnlyAccess
+  MyDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ng-test-table
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: LSI_SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - IndexName: LSI1
+          KeySchema:
+            - AttributeName: pk
+              KeyType: HASH
+            - AttributeName: LSI_SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+      ProvisionedThroughput:
+        ReadCapacityUnits: 20
+        WriteCapacityUnits: 10
+
+Outputs:
+  HelloWorldApi:
+    Description: API Gateway endpoint URL for dev stage for Hello World function
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/dev/"
